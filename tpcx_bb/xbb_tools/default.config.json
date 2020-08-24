@@ -1,0 +1,57 @@
+[
+    {"name":"data_dir",
+     "default":"/datasets/tpcx-bb/sf1/parquet_1gb/",
+     "type":"str",
+     "help":"Data Dir"
+    },
+    {"name":"output_dir",
+     "default":"./",
+     "type":"str",
+     "help":"Query Output Directry. Defaults to the directory of the query script."
+    },
+    {"name":"dask_dir",
+     "default":"./",
+     "type":"str",
+     "help":"Dask Dir"
+    },
+    {"name":"dask_profile",
+     "default":"False",
+     "type":"bool",
+     "help":"Include Dask Performance Report"
+    },
+    {"name":"cluster_host",
+     "default":"localhost",
+     "type":"str",
+     "help":"Hostname to use for the cluster scheduler. If you are trying to spin up a fresh SSHCluster, please ignore this and use --hosts instead."
+    },
+    {"name":"cluster_port",
+     "default":8786,
+     "type":"int",
+     "help":"Which port to use for the cluster scheduler. If you are trying to spin up a fresh SSHCluster, please ignore this and use --hosts instead."
+    },
+    {"name":"cluster_type",
+     "default":"local",
+     "type":"str",
+     "help":"The type of cluster to spin up (local CUDACluster or an SSH CUDACluster). You do not need to specify the cluster_type when attaching to an already running cluster."
+    },
+    {"name":"dask_n_workers",
+     "default":1,
+     "type":"int",
+     "help":"Number of worker processes to start"
+    },
+    {"name":"logdir",
+     "default":"./",
+     "type":"str",
+     "help":"directory to create log files`"
+    },
+    {"name":"timeout",
+     "type":"int",
+     "default":"300",
+     "help":"max duration for each query"
+    },
+    {"name":"dask_scheduler-file",
+    "type":"str",
+    "default":"sched.json",
+    "help":"File to write connection information."
+    }
+]

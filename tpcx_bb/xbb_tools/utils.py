@@ -45,6 +45,8 @@ import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+from . import config
+
 #################################
 # Benchmark Timing
 #################################
@@ -378,14 +380,7 @@ def tpcxbb_argparser():
 
 
 def get_tpcxbb_argparser_commandline_args():
-    parser = argparse.ArgumentParser(description="Run TPCx-BB query")
-    print("Using default arguments")
-    parser.add_argument(
-        "--config_file",
-        default="benchmark_runner/benchmark_config.yaml",
-        type=str,
-        help="Location of benchmark configuration yaml file",
-    )
+    parser = config.get_config().build_argparser( description="Run TPCx-BB query")
 
     args = parser.parse_args()
     args = vars(args)
