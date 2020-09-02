@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+
+set -x
+
 #IB, NVLINK, or TCP
 CLUSTER_MODE=${CLUSTER_MODE:="IB"}
 USERNAME=$(whoami)
@@ -30,8 +34,10 @@ mkdir -p $WORKER_DIR
 # Purge Dask config directories
 rm -rf ~/.config/dask
 
-# Activate conda environment
-source $CONDA_ENV_PATH
+if [ "${CONDA_DEFAULT_ENV}" != "${CONDA_ENV_NAME}" ] ; then
+  # Activate conda environment
+  source $CONDA_ENV_PATH
+fi
 conda activate $CONDA_ENV_NAME
 
 # Dask/distributed configuration

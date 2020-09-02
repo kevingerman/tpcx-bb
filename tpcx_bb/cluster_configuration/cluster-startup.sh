@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+
+set -x
+
 #IB, NVLINK, or TCP
 CLUSTER_MODE=${CLUSTER_MODE:="IB"}
 USERNAME=$(whoami)

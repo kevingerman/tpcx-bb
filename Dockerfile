@@ -19,19 +19,20 @@ ENV hostname=${hostname}_cuda${CUDA_VERSION}-${DISTRO}
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN groupadd --gid ${GROUP_ID} conda && \
+RUN groupadd --gid ${GROUP_ID} ${USER_GROUP_NAME} && \
     useradd -g ${GROUP_ID} -u ${USER_ID} -ms /bin/bash ${USER_GROUP_NAME} && \
     cat /conda/etc/profile.d/conda.sh >> /etc/profile && \
     echo "conda activate tpcxbb" >> /etc/profile && \
     cat /conda/etc/profile.d/conda.sh >> /home/${USER_GROUP_NAME}/.bashrc && \
     echo "conda activate tpcxbb" >> /home/${USER_GROUP_NAME}/.bashrc && \
-    chgrp -R conda /conda && \
+    chgrp -R ${USER_GROUP_NAME} /conda && \
     chmod -R g+rwx /conda
 
 COPY conda/rapids-tpcx-bb.yml /home/${USER_GROUP_NAME}/environment.yml
 COPY tpcx_bb /home/${USER_GROUP_NAME}/tpcx_bb
 
-RUN /bin/bash -c "source /conda/etc/profile.d/conda.sh && \
+RUN chown -R ${USER_GROUP_NAME}:${USER_GROUP_NAME} /home/${USER_GROUP_NAME}/tpcx_bb && \
+    /bin/bash -c "source /conda/etc/profile.d/conda.sh && \
     	          conda env create -f /home/${USER_GROUP_NAME}/environment.yml -n tpcxbb && \
                   conda activate tpcxbb && \
                   python -m pip install /home/${USER_GROUP_NAME}/tpcx_bb/."
