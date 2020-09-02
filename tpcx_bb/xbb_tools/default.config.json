@@ -1,4 +1,57 @@
 [
+    {"name":"get_read_time",
+     "default":"True",
+     "type":"bool",
+     "help":"whether or not to track read time"
+    },
+    {"name":"split_row_groups",
+      "default":"False",
+      "type":"bool",
+      "help":"not really sure"
+    },
+    { "name":"file_format",
+      "default":"parquet",
+      "type":"str",
+      "help":"help string"
+    },
+    { "name":"output_filetype",
+      "default":"parquet",
+      "type":"str",
+      "help":"help string"
+    },
+    { "name":"repartition_small_table",
+      "default":"True",
+      "type":"str",
+      "help":"help string"
+    },
+    { "name":"benchmark_runner_include_bsql",
+      "default":"False",
+      "type":"str",
+      "help":"help string"
+    },
+    { "name":"32GB_workers",
+      "help":"help string"
+    },
+    { "name":"verify_results",
+      "default":"False",
+      "type":"str",
+      "help":"help string"
+    },
+    { "name":"verify_dir",
+      "default":"",
+      "type":"str",
+      "help":"help string"
+    },
+    { "name":"sheet",
+      "default":"TPCx-BB",
+      "type":"str",
+      "help":"help string"
+    },
+    { "name":"tab",
+      "default":"SF1000 Benchmarking Matrix",
+      "type":"str",
+      "help":"help string"
+    },
     {"name":"data_dir",
      "default":"/datasets/tpcx-bb/sf1/parquet_1gb/",
      "type":"str",

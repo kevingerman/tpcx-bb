@@ -372,8 +372,6 @@ def add_empty_config(args):
 
 def tpcxbb_argparser():
     args = get_tpcxbb_argparser_commandline_args()
-    with open(args["config_file"]) as fp:
-        args = yaml.safe_load(fp.read())
     args = add_empty_config(args)
 
     return args
