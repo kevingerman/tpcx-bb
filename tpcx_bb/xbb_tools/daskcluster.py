@@ -24,8 +24,7 @@ log=logging.getLogger()
 
 """
    Thin wrapper around a thin wrapper to use args from xbb_tools.config to call
-   Start stop dask cluster as part of ASV workload.  Script shoulb be callable
-   from the asv.conf#install_command. Configuration is loaded from xbb_tools.config.
+   Start stop dask cluster for automated benchmarks.
 """
 
 def cli(commandline=None):
@@ -39,24 +38,47 @@ def cli(commandline=None):
     parser.usage="Start and stop, and get data from dask cluster described in config file."
     args = vars(parser.parse_args( commandline ))
     conf=config.get_config( args, fname=args.get('configfile') )
+    env=os.environ.copy()
 
+    env.update({
+        'tpcxbb_benchmark_sweep_run':conf.get('tpcxbb_benchmark_sweep_run',
+                                        os.getenv( 'tpcxbb_benchmark_sweep_run','True')),
+         'DASK_RMM__POOL_SIZE':conf.get('DASK_RMM__POOL_SIZE',
+                                        os.getenv('DASK_RMM__POOL_SIZE','1GB')),
+         'DASK_UCX__CUDA_COPY':conf.get('DASK_UCX__CUDA_COPY',
+                                        os.getenv('DASK_UCX__CUDA_COEPY','True')),
+         'DASK_UCX__TCP':conf.get('DASK_UCX__TCP',
+                                  os.getenv('DASK_UCX__TCP','True')),
+         'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT':conf.get(
+             'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT',
+             os.getenv('DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT',"100s")),
+         'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP':conf.get(
+             'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP', os.getenv(
+                 'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP',"600s")),
+         'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN':conf.get(
+             'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN', os.getenv(
+                 'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN',"1s")),
+         'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX':conf.get(
+             'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX', os.getenv(
+                 'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX',"60s"))
+        })
     for cmd in conf.commands:
         cmdf = cmd.upper().strip().replace('-','_')
         if cmdf == 'START_WORKERS':
-            start_workers( conf )
+            start_workers( conf, env )
         elif cmdf == 'START_SCHEDULER':
-            start_scheduler( conf )
+            start_scheduler( conf, env )
         elif cmdf == 'STOP_WORKERS':
-            stop_workers( conf )
+            stop_workers( conf, env )
         elif cmdf == 'STOP_SCHEDULER':
-            stop_scheduler( conf )
+            stop_scheduler( conf, env )
         elif cmdf == 'DUMP_TASK_STREAM':
-            dump_task_stream( conf )
+            dump_task_stream( conf, env )
         else:
             print( 'Unknown comand "{}"'.format( cmdf ) )
         time.sleep(2)
 
-def start_scheduler( conf ):
+def start_scheduler( conf, env ):
     clusterkeys=( 'dask_dashboard_address', 'dask_diagnostics_port', 'dask_host',
                   'dask_interface', 'dask_port', 'dask_preload',
                   'dask_protocol', 'dask_scheduler-file' )
@@ -65,23 +87,19 @@ def start_scheduler( conf ):
     return subprocess.Popen([sys.executable, '-m', 'distributed.cli.dask_scheduler'] + args,
                             stdout=open( os.path.join( conf.get('logdir', os.getcwd()), 'scheduler_{}.stdout.log'.format(os.getpid())), 'w'),
                             stderr=open( os.path.join( conf.get('logdir', os.getcwd()), 'scheduler_{}.stderr.log'.format(os.getpid())), 'w'),
-                            close_fds=True, env={'tpcxbb_benchmark_sweep_run':'True',
-                                                 'DASK_RMM__POOL_SIZE':'1GB',
-                                                 'DASK_UCX__CUDA_COPY':'True',
-                                                 'DASK_UCX__TCP':'True'},
+                            close_fds=True, env,
                             restore_signals=False, start_new_session=True)
 
-def start_workers( conf ):
+def start_workers( conf, env ):
     nworkers=int(conf.dask_n_workers)
     gpu_max_mem=float(device_memory_limit())
-    device_mem_limit="{}MB".format(int(float(conf.get('dask_device-memory-limit',gpu_max_mem))/(1024*1024)*.8))
-    sys_max_mem="{}MB".format( int(memory_limit()/(int(nworkers)*1024*1024)))
-    env=os.environ.copy()
+    device_mem_limit="{}MB".format(int(float(conf.get('dask_device-memory-limit',gpu_max_mem))/(1024**2)*.8))
+    sys_max_mem="{}MB".format( int(memory_limit()/(int(nworkers)*1024**2)))
     env.update({'DEVICE_MEMORY_LIMIT':device_mem_limit,
-                'POOL_SIZE':'{}MB'.format( int(gpu_max_mem/(1024*1024))),
+                'POOL_SIZE':'{}MB'.format( int(gpu_max_mem/(1024**2))),
                 'LOGDIR':conf.get('log_dir', './'),
                 'WORKER_DIR':conf.get('dask_worker_dir','./'),
-                'MAX_SYSTEM_MEMORY':sys_max_mem })
+                'MAX_SYSTEM_MEMORY':sys_max_mem})
 
     args=[sys.executable, '-m', 'dask_cuda.cli.dask_cuda_worker',
           '--device-memory-limit', device_mem_limit, '--no-reconnect',
@@ -119,7 +137,8 @@ def start_workers( conf ):
                              close_fds=True, env=env, restore_signals=False, start_new_session=True)
         #print( "*** WORKER {} PID: {}".format( i, pid.pid ))
 
-def stop_scheduler( conf ):
+
+def stop_scheduler( conf, env ):
     try:
         client = attach_to_cluster( conf )
         client.shutdown()
@@ -127,7 +146,7 @@ def stop_scheduler( conf ):
         log.exception( "Failed to stop scheduler", sys.exc_info())
 
 
-def stop_workers( conf ):
+def stop_workers( conf, env ):
     try:
         client = attach_to_cluster( conf )
         client.cancel( client.futures())
@@ -135,7 +154,7 @@ def stop_workers( conf ):
         log.exception( "Failed to stop workers", sys.exc_info())
 
 
-def dump_task_stream( conf ):
+def dump_task_stream( conf, env ):
     try:
         client = attach_to_cluster( conf )
         client.get_task_stream()
