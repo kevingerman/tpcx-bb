@@ -68,7 +68,8 @@ by environment is overidden by command line and c'tor args.  Environment will pi
             parser.add_argument( name, **d)
 
         parser.add_argument(
-            '-c', '--config', default="./{}.config.json".format(self._prefix.lower()),
+            '-c', '--config',
+            default=os.path.join( os.getcwd(),'.'.join([self._prefix.lower()]+["config.json"])),
             action='store', dest='configfile',
             help=self.__doc__    )
 
