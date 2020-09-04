@@ -6,6 +6,12 @@
     "help": "help string"
   },
   {
+    "name":"blazing_allocator",
+    "type":"bool",
+    "default":"False",
+    "help":"If true RMM_POOL_SIZE is set to 1/2 the difference between available GPU mem and DEVICE_MEMORY_LIMIT"
+  },
+  {
     "name": "cluster_host",
     "default": "localhost",
     "type": "str",
@@ -16,6 +22,11 @@
     "default": "TCP",
     "type": "str",
     "help": "transport used by dask_cudf. Should be coordinated with interface. Options: IB, TCP, NVLINK"
+  },
+  {
+    "name":"interface",
+    "type":"str",
+    "help":"network interface used by dask_cu*"
   },
   {
     "name": "cluster_port",
@@ -39,7 +50,7 @@
     "name": "dask_n_workers",
     "default": 1,
     "type": "int",
-    "help": "Number of worker processes to start"
+    "help": "Number of worker processes to start with each call to daskcluster start_workers"
   },
   {
     "name": "dask_profile",
@@ -58,6 +69,12 @@
     "default": "/datasets/tpcx-bb/sf1/parquet_1gb/",
     "type": "str",
     "help": "Data Dir"
+  },
+  {
+    "name":"device_memory_limit",
+    "type":"float",
+    "default":"0.9",
+    "help":"GPU memory limit is set ot a percent of available GPU memory"
   },
   {
     "name": "file_format",

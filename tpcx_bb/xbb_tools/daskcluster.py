@@ -41,27 +41,42 @@ def cli(commandline=None):
     env=os.environ.copy()
 
     env.update({
-        'tpcxbb_benchmark_sweep_run':conf.get('tpcxbb_benchmark_sweep_run',
-                                        os.getenv( 'tpcxbb_benchmark_sweep_run','True')),
-         'DASK_RMM__POOL_SIZE':conf.get('DASK_RMM__POOL_SIZE',
-                                        os.getenv('DASK_RMM__POOL_SIZE','1GB')),
-         'DASK_UCX__CUDA_COPY':conf.get('DASK_UCX__CUDA_COPY',
-                                        os.getenv('DASK_UCX__CUDA_COEPY','True')),
-         'DASK_UCX__TCP':conf.get('DASK_UCX__TCP',
-                                  os.getenv('DASK_UCX__TCP','True')),
-         'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT':conf.get(
-             'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT',
-             os.getenv('DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT',"100s")),
-         'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP':conf.get(
-             'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP', os.getenv(
-                 'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP',"600s")),
-         'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN':conf.get(
-             'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN', os.getenv(
-                 'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN',"1s")),
-         'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX':conf.get(
-             'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX', os.getenv(
-                 'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX',"60s"))
+        'CUDA_VISIBLE_DEVICES':conf.get('CUDA_VISIBLE_DEVICES',os.getenv(
+            'CUDA_VISIBLE_DEVICES':visible_devices()))
+    })
+    if conf.cluster_mode == "TCP":
+        env.update({
+            'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT':conf.get(
+                'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT', os.getenv(
+                    'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT',"100s")),
+            'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP':conf.get(
+                'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP', os.getenv(
+                    'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP',"600s")),
+            'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN':conf.get(
+                'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN', os.getenv(
+                    'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN',"1s")),
+            'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX':conf.get(
+                'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX', os.getenv(
+                    'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX',"60s"))
         })
+    if conf.cluster_mode=='NVLINK':
+        env.update({
+                    'tpcxbb_benchmark_sweep_run':bool(conf.get('tpcxbb_benchmark_sweep_run',
+                                                   os.getenv( 'tpcxbb_benchmark_sweep_run',True))),
+                    'DASK_RMM__POOL_SIZE':conf.get('DASK_RMM__POOL_SIZE',
+                                                   os.getenv('DASK_RMM__POOL_SIZE','1GB')),
+                    'DASK_UCX__CUDA_COPY':bool(conf.get('DASK_UCX__CUDA_COPY',
+                                                        os.getenv('DASK_UCX__CUDA_COEPY',True))),
+                    'DASK_UCX__TCP':bool(conf.get('DASK_UCX__TCP',
+                                                  os.getenv('DASK_UCX__TCP',True))),
+                    'DASK_UCX__NVLINK':bool(conf.get('DASK_UCX__NVLINK',
+                                                     os.getenv('DASK_UCX__NVLINK', True))),
+                    'DASK_UCX__INFINIBAND':bool(conf.get('DASK_UCX__INFINIBAND',
+                                                         os.getenv('DASK_UCX__INFINIBAND',False))),
+                    'DASK_UCX__RDMACM':bool(conf.get('DASK_UCX__RDMACM',
+                                                     os.getenv('DASK_UCX__RDMACM',False))),
+                    })
+
     for cmd in conf.commands:
         cmdf = cmd.upper().strip().replace('-','_')
         if cmdf == 'START_WORKERS':
