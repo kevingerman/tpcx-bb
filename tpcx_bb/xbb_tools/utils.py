@@ -378,7 +378,7 @@ def tpcxbb_argparser():
 
 
 def get_tpcxbb_argparser_commandline_args():
-    parser = config.get_config().build_argparser( description="Run TPCx-BB query")
+    parser = config.get_config(envprefix='').build_argparser( description="Run TPCx-BB query")
 
     args = parser.parse_args()
     args = vars(args)

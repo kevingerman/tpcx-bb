@@ -29,8 +29,7 @@ class Config(dict):
     _prefix='{}_'.format(_packagename.upper())
     _default_file_name='{}.config.json'.format(_packagename)
 
-    __doc__="""
-Config module takes parameters from command line, json files, environment, and the default config json in this pacakge and
+    __doc__="""Config module takes parameters from command line, json files, environment, and the default config json in this pacakge and
 presents a config object with dict interface and direct accessors.  Default config is overidden by config file is overidden
 by environment is overidden by command line and c'tor args.  Environment will pick up any environment variables prefixed with
 "{}" Prefix can be overidden in module get_config method.
@@ -124,7 +123,7 @@ by environment is overidden by command line and c'tor args.  Environment will pi
 
 
 def get_config( conf={}, fname=None, envprefix=Config._prefix):
-    env={k.replace(envprefix,''):os.getenv(k) for k in
+    env={k.replace(envprefix,'').lower():os.getenv(k) for k in
          filter( lambda x: x.startswith( envprefix), os.environ )}
     fname=fname if fname and os.path.exists(fname) else conf.get( 'configfile', env.get('configfile'))
     return Config( fname ).override( env ).override( conf, skipdefaults=True )
