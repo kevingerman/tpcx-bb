@@ -22,10 +22,11 @@ setup(
     version='0.2',
     author='RAPIDS',
     packages=["benchmark_runner", "xbb_tools"],
-    package_data={"benchmark_runner": ["benchmark_config.yaml"]},
+    package_data=package_data,
     entry_points={
         "console_scripts": [
-            "daskcluster=xbb_tools.daskcluster:cli"
+            "daskcluster=xbb_tools.daskcluster:cli",
+            "benchmark_runner=benchmark_runner:main"
         ]
     },
     include_package_data=True,

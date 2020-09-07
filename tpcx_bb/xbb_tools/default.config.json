@@ -1,15 +1,9 @@
 [
   {
-    "name": "benchmark_runner_include_bsql",
-    "default": "False",
-    "type": "str",
-    "help": "help string"
-  },
-  {
-    "name":"blazing_allocator",
+    "name":"with_blazing",
     "type":"bool",
     "default":"False",
-    "help":"If true RMM_POOL_SIZE is set to 1/2 the difference between available GPU mem and DEVICE_MEMORY_LIMIT"
+    "help":"If True cluster and runners setup with suppoort for BSQL"
   },
   {
     "name": "cluster_host",

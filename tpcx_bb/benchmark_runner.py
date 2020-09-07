@@ -25,7 +25,7 @@ def load_query(qnum, fn):
     loader.exec_module(mod)
     return mod.main
 
-if __name__ == "__main__":
+def main():
     from xbb_tools.cluster_startup import attach_to_cluster, import_query_libs
     from xbb_tools.utils import run_query, tpcxbb_argparser
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     
     config = tpcxbb_argparser()
-    include_blazing = config.get("benchmark_runner_include_bsql")
+    include_blazing = config.get("with_blazing")
     client, bc = attach_to_cluster(config, create_blazing_context=include_blazing)
 
     # Preload required libraries for queries on all workers
@@ -92,3 +92,6 @@ if __name__ == "__main__":
                 client.run_on_scheduler(gc.collect)
                 gc.collect()
                 time.sleep(3)
+
+if __name__ == "__main__":
+    main()

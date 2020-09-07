@@ -34,47 +34,31 @@ def cli(commandline=None):
         'commands', nargs='*',
         help='one or more of.. start_workers, stop_workers, start_scheduler, stop_scheduler.  More details: help-commands'
     )
-
     parser.usage="Start and stop, and get data from dask cluster described in config file."
     args = vars(parser.parse_args( commandline ))
-    conf=config.get_config( args, fname=args.get('configfile') )
-    env=os.environ.copy()
+    conf=config.get_config( args, fname=args.get('configfile'), envprefix='DASK_')
 
-    env.update({
-        'CUDA_VISIBLE_DEVICES':conf.get('CUDA_VISIBLE_DEVICES',os.getenv(
-            'CUDA_VISIBLE_DEVICES':visible_devices()))
-    })
+    env={'CUDA_VISIBLE_DEVICES':conf.get('CUDA_VISIBLE_DEVICES',os.getenv(
+            'CUDA_VISIBLE_DEVICES',visible_devices()))}
+
     if conf.cluster_mode == "TCP":
-        env.update({
-            'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT':conf.get(
-                'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT', os.getenv(
-                    'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT',"100s")),
-            'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP':conf.get(
-                'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP', os.getenv(
-                    'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP',"600s")),
-            'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN':conf.get(
-                'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN', os.getenv(
-                    'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN',"1s")),
-            'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX':conf.get(
-                'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX', os.getenv(
-                    'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX',"60s"))
-        })
-    if conf.cluster_mode=='NVLINK':
-        env.update({
-                    'tpcxbb_benchmark_sweep_run':bool(conf.get('tpcxbb_benchmark_sweep_run',
-                                                   os.getenv( 'tpcxbb_benchmark_sweep_run',True))),
-                    'DASK_RMM__POOL_SIZE':conf.get('DASK_RMM__POOL_SIZE',
-                                                   os.getenv('DASK_RMM__POOL_SIZE','1GB')),
-                    'DASK_UCX__CUDA_COPY':bool(conf.get('DASK_UCX__CUDA_COPY',
-                                                        os.getenv('DASK_UCX__CUDA_COEPY',True))),
-                    'DASK_UCX__TCP':bool(conf.get('DASK_UCX__TCP',
-                                                  os.getenv('DASK_UCX__TCP',True))),
-                    'DASK_UCX__NVLINK':bool(conf.get('DASK_UCX__NVLINK',
-                                                     os.getenv('DASK_UCX__NVLINK', True))),
-                    'DASK_UCX__INFINIBAND':bool(conf.get('DASK_UCX__INFINIBAND',
-                                                         os.getenv('DASK_UCX__INFINIBAND',False))),
-                    'DASK_UCX__RDMACM':bool(conf.get('DASK_UCX__RDMACM',
-                                                     os.getenv('DASK_UCX__RDMACM',False))),
+        env.update({'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT':conf.get(
+                        'distributed__comm__timeouts__connect', "100s"),
+                    'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP':conf.get(
+                        'distrubuted__comm__timeouts__tcp', "600s"),
+                    'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN':conf.get(
+                        'distributed__comm__retry__delay__min', "1s"),
+                    'DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX':conf.get(
+                        'distributed__comm__retry__delay__max', "60s")
+                    })
+    elif conf.cluster_mode=='NVLINK':
+        env.update({'tpcxbb_benchmark_sweep_run':bool(conf.get('tpcxbb_benchmark_sweep_run',True)),
+                    'DASK_RMM__POOL_SIZE':conf.get('rmm__pool_size','1GB'),
+                    'DASK_UCX__CUDA_COPY':conf.get('ucx__cuda_copy',True),
+                    'DASK_UCX__TCP':conf.get('ucx__tcp',True),
+                    'DASK_UCX__NVLINK':conf.get('ucx__nvlink',True),
+                    'DASK_UCX__INFINIBAND':conf.get('ucx_infiniband',False),
+                    'DASK_UCX__RDMACM':conf.get('ucx__rdmacm',False),
                     })
 
     for cmd in conf.commands:
@@ -94,7 +78,7 @@ def cli(commandline=None):
         time.sleep(2)
 
 def start_scheduler( conf, env ):
-    clusterkeys=( 'dask_dashboard_address', 'dask_diagnostics_port', 'dask_host',
+    clusterkeys=( 'dashboard_address', 'diagnostics_port', 'dask_host',
                   'dask_interface', 'dask_port', 'dask_preload',
                   'dask_protocol', 'dask_scheduler-file' )
 
