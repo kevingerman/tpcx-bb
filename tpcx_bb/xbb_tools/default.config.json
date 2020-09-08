@@ -1,11 +1,5 @@
 [
   {
-    "name":"with_blazing",
-    "type":"bool",
-    "default":"False",
-    "help":"If True cluster and runners setup with suppoort for BSQL"
-  },
-  {
     "name": "cluster_host",
     "default": "localhost",
     "type": "str",
@@ -16,11 +10,6 @@
     "default": "TCP",
     "type": "str",
     "help": "transport used by dask_cudf. Should be coordinated with interface. Options: IB, TCP, NVLINK"
-  },
-  {
-    "name":"interface",
-    "type":"str",
-    "help":"network interface used by dask_cu*"
   },
   {
     "name": "cluster_port",
@@ -35,40 +24,16 @@
     "help": "The type of cluster to spin up (local CUDACluster or an SSH CUDACluster). You do not need to specify the cluster_type when attaching to an already running cluster."
   },
   {
-    "name": "dask_dir",
-    "default": "./",
-    "type": "str",
-    "help": "Dask Dir"
-  },
-  {
-    "name": "dask_n_workers",
-    "default": 1,
-    "type": "int",
-    "help": "Number of worker processes to start with each call to daskcluster start_workers"
-  },
-  {
-    "name": "dask_profile",
-    "default": "False",
-    "type": "bool",
-    "help": "Include Dask Performance Report"
-  },
-  {
-    "name": "dask_scheduler-file",
-    "type": "str",
-    "default": "sched.json",
-    "help": "File to write connection information."
-  },
-  {
     "name": "data_dir",
     "default": "/datasets/tpcx-bb/sf1/parquet_1gb/",
     "type": "str",
     "help": "Data Dir"
   },
   {
-    "name":"device_memory_limit",
-    "type":"float",
-    "default":"0.9",
-    "help":"GPU memory limit is set ot a percent of available GPU memory"
+    "name": "device_memory_limit",
+    "type": "float",
+    "default": "0.9",
+    "help": "GPU memory limit is set ot a percent of available GPU memory"
   },
   {
     "name": "file_format",
@@ -83,10 +48,21 @@
     "help": "whether or not to track read time"
   },
   {
+    "name": "interface",
+    "type": "str",
+    "help": "network interface used by dask_cu*"
+  },
+  {
     "name": "logdir",
     "default": "./",
     "type": "str",
     "help": "directory to create log files`"
+  },
+  {
+    "name": "n_workers",
+    "default": 1,
+    "type": "int",
+    "help": "Number of worker processes to start with each call to daskcluster start_workers"
   },
   {
     "name": "output_dir",
@@ -101,10 +77,22 @@
     "help": "help string"
   },
   {
+    "name": "profile",
+    "default": "False",
+    "type": "bool",
+    "help": "Include Dask Performance Report"
+  },
+  {
     "name": "repartition_small_table",
     "default": "True",
     "type": "str",
     "help": "help string"
+  },
+  {
+    "name": "scheduler-file",
+    "type": "str",
+    "default": "sched.json",
+    "help": "File to write connection information."
   },
   {
     "name": "sheet",
@@ -141,5 +129,11 @@
     "default": "False",
     "type": "str",
     "help": "help string"
+  },
+  {
+    "name": "with_blazing",
+    "type": "bool",
+    "default": "False",
+    "help": "If True cluster and runners setup with suppoort for BSQL"
   }
 ]
