@@ -49,6 +49,7 @@
   },
   {
     "name": "interface",
+    "default":"eth0",
     "type": "str",
     "help": "network interface used by dask_cu*"
   },
