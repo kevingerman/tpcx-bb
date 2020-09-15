@@ -45,7 +45,7 @@ import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-from . import config
+from .config import get_config
 
 #################################
 # Benchmark Timing
@@ -279,7 +279,7 @@ def run_dask_cudf_query(config, client, query_func, write_func=write_result):
             query_func,
             dask_profile=config.get("dask_profile"),
             client=client,
-            config=config,
+            config=config
         )
 
         benchmark(
@@ -378,11 +378,9 @@ def tpcxbb_argparser():
 
 
 def get_tpcxbb_argparser_commandline_args():
-    parser = config.get_config(envprefix='').build_argparser( description="Run TPCx-BB query")
+    parser = get_config().build_argparser( description="Run TPCx-BB query")
 
-    args = parser.parse_args()
-    args = vars(args)
-    return args
+    return get_config(vars(parser.parse_args()))
 
 
 def get_scale_factor(data_dir):
