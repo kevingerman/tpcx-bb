@@ -18,6 +18,7 @@ from .cluster_startup import attach_to_cluster
 from .device import device_memory_limit, memory_limit, visible_devices
 
 import subprocess
+import signal
 
 import logging, os, sys, math, time
 log=logging.getLogger()
@@ -36,12 +37,14 @@ def cli(commandline=None):
         'commands', nargs='*',
         help='one or more of.. start_workers, stop_workers, start_scheduler, stop_scheduler.'
     )
-    parser.usage="Start and stop, and get data from dask cluster described in config file."
+    parser.add_argument( '--duration', action='store', default=0,
+                         help='duration to wait before killing processes started by this command and exitting' )
+    parser.usage="Start and stop, and get data from dask cluster described in config file. Commands executed in sequence.  Always put WAIT last"
     args = vars(parser.parse_args( commandline ))
     conf=config.get_config( args, fname=args.get('configfile'), envprefix='DASK_')
 
     env={'CUDA_VISIBLE_DEVICES':conf.get(
-            'CUDA_VISIBLE_DEVICES',visible_devices()),
+            'CUDA_VISIBLE_DEVICES',','.join([str(x) for x in visible_devices()])),
          'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT':conf.get(
             'distributed__comm__timeouts__connect', "100s"),
          'DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP':conf.get(
@@ -61,6 +64,11 @@ def cli(commandline=None):
             stop_workers( conf, env )
         elif cmdf == 'STOP_SCHEDULER':
             stop_scheduler( conf, env )
+        elif cmdf == 'WAIT':
+            if i == len(conf.commands):
+                wait_on_pids(conf, env)
+            else:
+                conf.commands.append(cmdf)
         elif cmdf == 'DUMP_TASK_STREAM':
             dump_task_stream( conf, env )
         else:
@@ -73,17 +81,22 @@ def start_scheduler( conf, env ):
                   'protocol', 'scheduler-file' )
 
     if conf.cluster_mode=='NVLINK':
-        env.update({'tpcxbb_benchmark_sweep_run':conf.get('tpcxbb_benchmark_sweep_run',True),
-                    'DASK_RMM__POOL_SIZE':conf.get('rmm__pool_size','1GB'),
-                    'DASK_UCX__CUDA_COPY':conf.get('ucx__cuda_copy',True),
-                    'DASK_UCX__TCP':conf.get('ucx__tcp',True),
-                    'DASK_UCX__NVLINK':conf.get('ucx__nvlink',True),
-                    'DASK_UCX__INFINIBAND':conf.get('ucx_infiniband',False),
-                    'DASK_UCX__RDMACM':conf.get('ucx__rdmacm',False),
+        env.update({'tpcxbb_benchmark_sweep_run':str(conf.get('tpcxbb_benchmark_sweep_run',True)),
+                    'DASK_RMM__POOL_SIZE':str(conf.get('rmm__pool_size','1GB')),
+                    'DASK_UCX__CUDA_COPY':str(conf.get('ucx__cuda_copy',True)),
+                    'DASK_UCX__TCP':str(conf.get('ucx__tcp',True)),
+                    'DASK_UCX__NVLINK':str(conf.get('ucx__nvlink',True)),
+                    'DASK_UCX__INFINIBAND':str(conf.get('ucx_infiniband',False)),
+                    'DASK_UCX__RDMACM':str(conf.get('ucx__rdmacm',False)),
                     })
 
-    args=[str(a) for k in filter( lambda x: x in clusterkeys, conf.keys()) for a in [f"--{k}",conf.get(k)]]
-    return subprocess.Popen([sys.executable, '-m', 'distributed.cli.dask_scheduler'] + args,
+    args=[sys.executable, '-m', 'distributed.cli.dask_scheduler'] + [str(a) for k in filter( lambda x: x in clusterkeys, conf.keys()) for a in [f"--{k}",conf.get(k)]]
+    log.info( "Starting Scheduler with command \"{}\" with environment {}".format( ' '.join(args),
+                                                                                   ', '.join([':'.join(map(str,i)) for i in env.items()])))
+    args.append('--pid-file')
+    args.append( os.path.join( conf.get('logdir', os.getcwd()), 'scheduler_{}.pid'.format(os.getpid())))
+
+    return subprocess.Popen( args,
                             stdout=open( os.path.join( conf.get('logdir', os.getcwd()), 'scheduler_{}.stdout.log'.format(os.getpid())), 'w'),
                             stderr=open( os.path.join( conf.get('logdir', os.getcwd()), 'scheduler_{}.stderr.log'.format(os.getpid())), 'w'),
                             close_fds=True, env=env, restore_signals=False, start_new_session=True)
@@ -112,7 +125,7 @@ def start_workers( conf, env ):
     if conf.with_blazing:
         ##with blazing: RMM_POOL_SIZE is reduced from total GPU mem by half the amount that DEVICE_MEMORY_LIMIT
         args+=['--rmm-pool-size',conf.get('rmm-pool-size', "{}MB".format(
-                                          int(gpu_mem_max_mb*(float(device_mem_limit_mb)/(2*gpu_max_mem_mb)))))]
+                                          int(gpu_max_mem_mb*(float(device_mem_limit_mb)/(2*gpu_max_mem_mb)))))]
 
     clusterkeys=( 'diagnostics_port', 'host', 'local-directory',
                   'interface', 'port', 'preload',
@@ -120,7 +133,7 @@ def start_workers( conf, env ):
                   'tls-ca-file', 'tls-cert', 'tls-key' )
 
     args+=[str(a) for k in filter( lambda x: x in clusterkeys, conf.keys()) for a in [f"--{k}",conf.get(k)]]
-    #print ("EXECUTE:  {}".format( ' '.join( map(str,args))))
+ 
 
     visible_gpus=visible_devices()
     scale=math.ceil(len(visible_gpus)/nworkers)
@@ -131,7 +144,10 @@ def start_workers( conf, env ):
                                         nworkers]
         env['CUDA_VISIBLE_DEVICES']=','.join(list(map(str,mygpus)))
         env['NVIDIA_VISIBLE_DEVICES']=env['CUDA_VISIBLE_DEVICES']
-        #print ("EXECUTE 'worker-{}: {} on GPUs: {}".format( i,' '.join( map(str,args)),env['CUDA_VISIBLE_DEVICES']))
+        log.info("EXECUTE 'worker-{}: {} with env {}".format( i,' '.join( map(str,args)),
+                                                              ', '.join([':'.join(map(str,i)) for i in env.items()])))
+        args.append('--pid-file')
+        args.append( os.path.join( conf.get('logdir', os.getcwd()), 'worker_n{}_{}.pid'.format(i,os.getpid())))
 
         pid= subprocess.Popen(args + ['--name', 'worker-{}'.format(i)],
                              stdout=open( os.path.join( conf.get('logdir', os.getcwd()), 
@@ -139,7 +155,6 @@ def start_workers( conf, env ):
                              stderr=open( os.path.join( conf.get('logdir', os.getcwd()), 
                                                        'worker{}_{}.stderr.log'.format(i,os.getpid())), 'w'),
                              close_fds=True, env=env, restore_signals=False, start_new_session=True)
-        #print( "*** WORKER {} PID: {}".format( i, pid.pid ))
 
 
 def stop_scheduler( conf, env ):
@@ -156,6 +171,24 @@ def stop_workers( conf, env ):
         client.cancel( client.futures())
     except:
         log.exception( "Failed to stop workers", sys.exc_info())
+
+
+def wait_on_pids( conf, env ):
+    starttime=time.time()
+    waitflag=True
+
+    while waitflag:
+        client = attach_to_cluster( conf )
+        time.sleep( (time.time()-starttime)/conf.get('duration',1) )
+        for pidfile in filter( lambda s: s.endswith( '{}.pid'.format(os.getpid())), 
+                               os.listdir(conf.get('logdir', os.getcwd()))):
+            pid = int(open(pidfile,'r').read())
+            if conf.get('duration',0) and starttime + conf.get('duration') > time.time():
+                os.kill(pid, signal.SIGTERM)
+                waitflag=False
+        #is pid alive?
+        #is scheduler alive?
+        #if duration, has it passed?
 
 
 def dump_task_stream( conf, env ):
