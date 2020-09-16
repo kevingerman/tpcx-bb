@@ -18,6 +18,7 @@ ENV NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}
 ENV hostname=${hostname}_cuda${CUDA_VERSION}-${DISTRO}
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV OMPI_MCA_opal_cuda_support=true
 
 RUN groupadd --gid ${GROUP_ID} ${USER_GROUP_NAME} && \
     useradd -g ${GROUP_ID} -u ${USER_ID} -ms /bin/bash ${USER_GROUP_NAME} && \
