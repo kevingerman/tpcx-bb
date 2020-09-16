@@ -5,7 +5,7 @@ FROM ${BASE_IMAGE}
 ARG GROUP_ID=10000
 ARG USER_ID=10000
 ARG USER_GROUP_NAME=rapids
-
+ARG CONDA_ENV_FILE=conda/rapids-tpcx-bb.yml
 
 ENV PATH /conda/bin:$PATH
 ADD https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh miniconda.sh
@@ -28,7 +28,7 @@ RUN groupadd --gid ${GROUP_ID} ${USER_GROUP_NAME} && \
     chgrp -R ${USER_GROUP_NAME} /conda && \
     chmod -R g+rwx /conda
 
-COPY conda/rapids-tpcx-bb.yml /home/${USER_GROUP_NAME}/environment.yml
+COPY ${CONDA_ENV_FILE} /home/${USER_GROUP_NAME}/environment.yml
 COPY tpcx_bb /home/${USER_GROUP_NAME}/tpcx_bb
 
 RUN chown -R ${USER_GROUP_NAME}:${USER_GROUP_NAME} /home/${USER_GROUP_NAME}/tpcx_bb && \
