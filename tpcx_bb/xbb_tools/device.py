@@ -25,7 +25,7 @@ def visible_devices():
                         os.getenv('CUDA_VISIBLE_DEVICES', 'all' ))
     if envvar.upper() == 'ALL':
         return tuple(range(pynvml.nvmlDeviceGetCount()))
-    return tuple(map( int, envvar.split(',')))
+    return tuple(envvar.split(','))
 
 
 def device_memory_limit( devices=None ):
