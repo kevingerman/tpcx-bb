@@ -30,11 +30,13 @@ RUN groupadd --gid ${GROUP_ID} ${USER_GROUP_NAME} && \
     chmod -R g+rwx /conda
 
 COPY ${CONDA_ENV_FILE} /home/${USER_GROUP_NAME}/environment.yml
-COPY tpcx_bb /home/${USER_GROUP_NAME}/tpcx_bb
+RUN /bin/bash -c "source /conda/etc/profile.d/conda.sh && \
+                  conda env create -f /home/${USER_GROUP_NAME}/environment.yml -n tpcxbb"
 
+COPY tpcx_bb /home/${USER_GROUP_NAME}/tpcx_bb
 RUN chown -R ${USER_GROUP_NAME}:${USER_GROUP_NAME} /home/${USER_GROUP_NAME}/tpcx_bb && \
+    chown -R ${USER_GROUP_NAME}:${USER_GROUP_NAME} /conda/envs/tpcxbb && \
     /bin/bash -c "source /conda/etc/profile.d/conda.sh && \
-    	          conda env create -f /home/${USER_GROUP_NAME}/environment.yml -n tpcxbb && \
                   conda activate tpcxbb && \
                   python -m pip install /home/${USER_GROUP_NAME}/tpcx_bb/."
 
