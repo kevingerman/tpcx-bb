@@ -103,7 +103,6 @@
   },
   {
     "name": "split_row_groups",
-    "default": "False",
     "type": "bool",
     "help": "not really sure"
   },
@@ -127,14 +126,12 @@
   },
   {
     "name": "verify_results",
-    "default": "False",
-    "type": "str",
+    "type": "bool",
     "help": "help string"
   },
   {
     "name": "with_blazing",
     "type": "bool",
-    "default": "False",
     "help": "If True cluster and runners setup with suppoort for BSQL"
   }
 ]

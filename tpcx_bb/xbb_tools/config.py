@@ -63,9 +63,9 @@ by environment is overidden by command line and c'tor args.  Environment will pi
             name="--{}".format(d.pop("name"))
             if 'default' in d:
                 d['default']=self.eval_default_value(d)
+            if 'type' in d:
                 d.pop('type')
             parser.add_argument( name, **d)
-
         parser.add_argument(
             '-c', '--config',
             default=os.path.join( os.getcwd(),'.'.join([self._prefix.lower()]+["config.json"])),
