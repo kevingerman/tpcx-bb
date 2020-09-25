@@ -348,33 +348,8 @@ def run_bsql_query(
     # google sheet benchmarking automation
     push_payload_to_googlesheet(config)
 
-
-def add_empty_config(args):
-    keys = [
-        "get_read_time",
-        "split_row_groups",
-        "dask_profile",
-        "verify_results",
-    ]
-
-    for key in keys:
-        if key not in args:
-            args[key] = None
-
-    if "file_format" not in args:
-        args["file_format"] = "parquet"
-
-    if "output_filetype" not in args:
-        args["output_filetype"] = "parquet"
-
-    return args
-
-
 def tpcxbb_argparser():
-    args = get_tpcxbb_argparser_commandline_args()
-    args = add_empty_config(args)
-
-    return args
+    return get_tpcxbb_argparser_commandline_args()
 
 
 def get_tpcxbb_argparser_commandline_args():
