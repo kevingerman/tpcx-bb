@@ -20,6 +20,9 @@ ENV hostname=${hostname}_cuda${CUDA_VERSION}-${DISTRO}
 ENV DEBIAN_FRONTEND=noninteractive
 ENV OMPI_MCA_opal_cuda_support=true
 
+#Workaround for http://nvbugs/2903712
+ENV IBV_DRIVERS=/usr/lib/libibverbs/libmlx5
+
 RUN groupadd --gid ${GROUP_ID} ${USER_GROUP_NAME} && \
     useradd -g ${GROUP_ID} -u ${USER_ID} -ms /bin/bash ${USER_GROUP_NAME} && \
     cat /conda/etc/profile.d/conda.sh >> /etc/profile && \
