@@ -36,6 +36,11 @@
     "help": "GPU memory limit is set ot a percent of available GPU memory"
   },
   {
+    "name": "dask_profile",
+    "type": "bool",
+    "help": "Include Dask Performance Report"
+  },
+  {
     "name": "file_format",
     "default": "parquet",
     "type": "str",
@@ -76,12 +81,6 @@
     "default": "parquet",
     "type": "str",
     "help": "help string"
-  },
-  {
-    "name": "profile",
-    "default": "False",
-    "type": "bool",
-    "help": "Include Dask Performance Report"
   },
   {
     "name": "repartition_small_table",
