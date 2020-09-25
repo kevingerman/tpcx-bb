@@ -1,11 +1,7 @@
 from xbb_tools.utils import benchmark, tpcxbb_argparser, run_query
 from xbb_tools.readers import build_reader
 import os, subprocess, math, time
-from xbb_tools import config
-
-conf=config.get_config()
-print( conf._prefix)
-spark_schema_dir = conf.get('spark_schema_dir', f"{os.getcwd()}/../../spark_table_schemas/")
+from xbb_tools.config import get_config
 
 # these tables have extra data produced by bigbench dataGen
 refresh_tables = [
@@ -21,15 +17,13 @@ refresh_tables = [
     "web_returns",
     "web_sales",
 ]
-tables = [table.split(".")[0] for table in os.listdir(spark_schema_dir)]
 
-scale = [x for x in conf["data_dir"].split("/") if "sf" in x][0]
-part_size = 3
-chunksize = "128 MiB"
+def get_tables( spark_schema_dir ):
+    return [table.split(".")[0] for table in os.listdir(spark_schema_dir)]
 
 # Spark uses different names for column types, and RAPIDS doesn't yet support Decimal types.
-def get_schema(table):
-    with open(f"{spark_schema_dir}{table}.schema") as fp:
+def get_schema(table, schema_dir):
+    with open(os.path.join(schema_dir,f"{table}.schema")) as fp:
         schema = fp.read()
         names = [line.replace(",", "").split()[0] for line in schema.split("\n")]
         types = [
@@ -45,12 +39,9 @@ def get_schema(table):
         return names, types
 
 
-def read_csv_table(table, chunksize="256 MiB"):
-    # build dict of dtypes to use when reading CSV
-    names, types = get_schema(table)
-    dtype = {names[i]: types[i] for i in range(0, len(names))}
-
-    data_dir = conf["data_dir"]
+def read_csv_table(table, data_dir, schema_dir, chunksize="256 MiB"):
+    names, types = get_schema(table, schema_dir)
+    dtype=dict(zip(names, types))
     base_path = f"{data_dir}/data/{table}"
     files = os.listdir(base_path)
     # item_marketprices has "audit" files that should be excluded
@@ -99,26 +90,26 @@ def multiplier(unit):
 
 
 # we use size of the CSV data on disk to determine number of Parquet partitions
-def get_size_gb(table):
-    data_dir = conf["data_dir"]
-    path = data_dir + "/data/" + table
-    size = subprocess.check_output(["du", "-sh", path]).split()[0].decode("utf-8")
+def get_size_gb(table, data_dir):
+    table_path=os.path.join( data_dir, 'data', table)
+    print( f"Getting size of {table_path}")
+    size = subprocess.check_output(["du", "-sh", table_path]).split()[0].decode("utf-8")
     unit = size[-1]
 
     size = math.ceil(float(size[:-1])) * multiplier(unit)
 
     if table in refresh_tables:
-        path = data_dir + "/data_refresh/" + table
+        table_path = os.path.join(data_dir,'data_refresh',table)
         refresh_size = (
-            subprocess.check_output(["du", "-sh", path]).split()[0].decode("utf-8")
+            subprocess.check_output(["du", "-sh", table_path]).split()[0].decode("utf-8")
         )
         size = size + math.ceil(float(refresh_size[:-1])) * multiplier(refresh_size[-1])
 
     return size
 
 
-def repartition(table, outdir, npartitions=None, chunksize=None, compression="snappy"):
-    size = get_size_gb(table)
+def repartition(table, data_dir, schema_dir, outdir, npartitions=None, chunksize=None, compression="snappy"):
+    size = get_size_gb(table, data_dir)
     if npartitions is None:
         npartitions = max(1, size)
 
@@ -128,38 +119,39 @@ def repartition(table, outdir, npartitions=None, chunksize=None, compression="sn
     # web_clickstreams is particularly memory intensive
     # we sacrifice a bit of speed for stability, converting half at a time
     if table in ["web_clickstreams"]:
-        df = read_csv_table(table, chunksize)
-        half = int(df.npartitions / 2)
-        df.partitions[0:half].repartition(npartitions=int(npartitions / 2)).to_parquet(
+        df = read_csv_table(table, data_dir, schema_dir, chunksize)
+        half = max(1,int(df.npartitions / 2))
+        df.partitions[0:half].repartition(npartitions=max(1,int(npartitions / 2))).to_parquet(
             outdir + table, compression=compression
         )
         print("Completed first half of web_clickstreams..")
-        df.partitions[half:].repartition(npartitions=int(npartitions / 2)).to_parquet(
+        df.partitions[half:].repartition(npartitions=max(1,int(npartitions / 2))).to_parquet(
             outdir + table, compression=compression
         )
 
     else:
-        read_csv_table(table, chunksize).repartition(
+        read_csv_table(table, data_dir, schema_dir, chunksize).repartition(
             npartitions=npartitions
         ).to_parquet(outdir + table, compression=compression)
 
 
-def main(client, conf):
+def main(client, config):
     # location you want to write Parquet versions of the table data
-    data_dir = "/".join(conf["data_dir"].split("/")[:-1])
-    outdir = f"{data_dir}/parquet_{part_size}gb/"
-
-    total = 0
-    for table in tables:
-        size_gb = get_size_gb(table)
+    data_dir = config.get("data_dir",'.')
+    outdir = f"{data_dir}/parquet_{config.get('partitions',3)}gb/"
+    schema_dir= config.get('spark_schema_dir',
+                           os.path.join(os.getcwd(),'..','..','spark_table_schemas'))
+    began = time.time()
+    for table in get_tables(schema_dir):
+        size_gb = get_size_gb(table, data_dir)
         # product_reviews has lengthy strings which exceed cudf's max number of characters per column
         # we use smaller partitions to avoid overflowing this character limit
         if table == "product_reviews":
             npartitions = max(1, int(size_gb / 1))
         else:
-            npartitions = max(1, int(size_gb / part_size))
-        repartition(table, outdir, npartitions, chunksize, compression="snappy")
-    print(f"{chunksize} took {total}s")
+            npartitions = max(1, int(size_gb / config.get('partitions',3)))
+        repartition(table, data_dir, schema_dir, outdir, npartitions, config.get('chunk_size',"128 MiB"), compression="snappy")
+    print(f"{config.get('chunk_size','128 MiB')} took {time.time() - began}s")
     return cudf.DataFrame()
 
 
