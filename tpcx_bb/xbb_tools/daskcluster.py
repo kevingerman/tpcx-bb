@@ -43,6 +43,8 @@ def cli(commandline=None):
     args = vars(parser.parse_args( commandline ))
     conf=config.get_config( args, fname=args.get('configfile'), envprefix='DASK_')
 
+    logging.basicConfig( filename=os.path.join( conf.get('logdir', os.getcwd()), f"daskcluster_{os.getpid()}.log"))
+
     env={'CUDA_VISIBLE_DEVICES':conf.get(
             'CUDA_VISIBLE_DEVICES',','.join([str(x) for x in visible_devices()])),
          'DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT':conf.get(
