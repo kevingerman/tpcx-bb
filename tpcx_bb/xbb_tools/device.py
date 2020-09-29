@@ -20,23 +20,20 @@ import re, os
 
 pynvml.nvmlInit()
 
-def visible_devices():
+def visible_devices(devices='all'):
+    """returns a tuple of integers representing device indices"""
     envvar = os.getenv( 'NVIDIA_VISIBLE_DEVICES',
-                        os.getenv('CUDA_VISIBLE_DEVICES', 'all' ))
+                        os.getenv('CUDA_VISIBLE_DEVICES', devices ))
     if envvar.upper() == 'ALL':
-        return tuple(range(pynvml.nvmlDeviceGetCount()))
-    return tuple(envvar.split(','))
+        return tuple(ndx for ndx in range(pynvml.nvmlDeviceGetCount()))
+    return tuple( int(ndx) if re.match( '^\d+$', ndx.strip())
+                           else pynvml.nvmlDeviceGetIndex( pynvml.nvmlDeviceGetHandleByUUID(ndx.encode('UTF-8')))
+                           for ndx in re.split('[, ]+',envvar))
 
 
-def device_memory_limit( devices=None ):
-    indices=[]
-    if not devices:
-        indices=visible_devices()
-    else:
-        indices=map(int,re.split( '[, ]+', devices))
-
+def device_memory_limit( devices=[] ):
     return min( [pynvml.nvmlDeviceGetMemoryInfo(
-                    pynvml.nvmlDeviceGetHandleByIndex(d)).total for d in indices] )
+                    pynvml.nvmlDeviceGetHandleByIndex(d)).total for d in visible_devices(','.join(devices) if devices else None)] )
 
 
 def memory_limit():
