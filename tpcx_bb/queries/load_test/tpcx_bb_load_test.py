@@ -138,7 +138,7 @@ def repartition(table, data_dir, schema_dir, outdir, npartitions=None, chunksize
 def main(client, config):
     # location you want to write Parquet versions of the table data
     data_dir = config.get("data_dir",'.')
-    outdir = f"{data_dir}/parquet_{config.get('partitions',3)}gb/"
+    outdir = f"{config.get('output_dir',data_dir)}/parquet_{config.get('partitions',3)}gb/"
     schema_dir= config.get('spark_schema_dir',
                            os.path.join(os.getcwd(),'..','..','spark_table_schemas'))
     began = time.time()
