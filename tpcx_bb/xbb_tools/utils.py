@@ -374,7 +374,12 @@ def get_query_number():
         ...
     """
     QUERY_NUM = os.getcwd().split("/")[-1].strip("q")
-    return QUERY_NUM
+    if re.match('\d+', QUERY_NUM):
+        return QUERY_NUM
+    for mg in filter( bool, map( lambda s: re.search('tpcx_bb_query_(\d+)',s), sys.argv )):
+        if re.match('\d+', mg.group(1)):
+           return mg.group(1)
+    return os.getenv( 'TPCXBB_QUERY_NUM')
 
 
 #################################
