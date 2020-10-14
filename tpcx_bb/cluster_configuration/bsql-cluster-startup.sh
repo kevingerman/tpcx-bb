@@ -1,25 +1,29 @@
+#!/usr/bin/env bash
+
+set -x
+
 #IB, NVLINK, or TCP
-CLUSTER_MODE=$1
+CLUSTER_MODE=${CLUSTER_MODE:="IB"}
 USERNAME=$(whoami)
 
 MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
-DEVICE_MEMORY_LIMIT="25GB"
-POOL_SIZE="30GB"
+DEVICE_MEMORY_LIMIT=${DEVICE_MEMORY_LIMIT:="25GB"}
+POOL_SIZE=${POOL_SIZE:="30GB"}
 
 # Fill in your environment name and conda path on each node
-TPCX_BB_HOME="/home/$USERNAME/shared/tpcx-bb"
-CONDA_ENV_NAME="rapids-tpcx-bb"
-CONDA_ENV_PATH="/home/$USERNAME/conda/etc/profile.d/conda.sh"
+TPCX_BB_HOME=${TPCX_BB_HOME:="/home/$USERNAME/shared/tpcx-bb"}
+CONDA_ENV_NAME=${CONDA_ENV_NAME:="rapids-tpcx-bb"}
+CONDA_ENV_PATH=${CONDA_ENV_PATH:="/home/$USERNAME/conda/etc/profile.d/conda.sh"}
 
 # TODO: Unify interface/IP setting/getting for cluster startup
 # and scheduler file
-INTERFACE="ib0"
+INTERFACE=${INTERFACE:="ib0"}
 
 # TODO: Remove hard-coding of scheduler
-SCHEDULER=$(hostname)
-SCHEDULER_FILE=$TPCX_BB_HOME/tpcx_bb/cluster_configuration/example-cluster-scheduler.json
-LOGDIR="/tmp/tpcx-bb-dask-logs/"
-WORKER_DIR="/tmp/tpcx-bb-dask-workers/"
+SCHEDULER=${SCHEDULER:=$(hostname)}
+SCHEDULER_FILE=${SCHEDULER_FILE:="${TPCX_BB_HOME}/tpcx_bb/cluster_configuration/example-cluster-scheduler.json"}
+LOGDIR=${LOGDIR:="/tmp/tpcx-bb-dask-logs/"}
+WORKER_DIR=${WORKER_DIR:="/tmp/tpcx-bb-dask-workers/"}
 
 # Purge Dask worker and log directories
 rm -rf $LOGDIR/*
@@ -30,15 +34,17 @@ mkdir -p $WORKER_DIR
 # Purge Dask config directories
 rm -rf ~/.config/dask
 
-# Activate conda environment
-source $CONDA_ENV_PATH
+if [ "${CONDA_DEFAULT_ENV}" != "${CONDA_ENV_NAME}" ] ; then
+  # Activate conda environment
+  source $CONDA_ENV_PATH
+fi
 conda activate $CONDA_ENV_NAME
 
 # Dask/distributed configuration
-export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT="100s"
-export DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP="600s"
-export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN="1s"
-export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX="60s"
+export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT=${DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT:="100s"}
+export DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP=${DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP:="600s"}
+export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN=${DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN:="1s"}
+export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX=${DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX:="60s"}
 
 
 # Setup scheduler

@@ -45,6 +45,8 @@ import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+from .config import get_config
+
 #################################
 # Benchmark Timing
 #################################
@@ -124,7 +126,7 @@ def write_etl_result(df, filetype="parquet", output_directory="./"):
 
     QUERY_NUM = get_query_number()
     if filetype == "csv":
-        output_path = f"{output_directory}q{QUERY_NUM}-results.csv"
+        output_path = os.path.join(output_directory,f"q{QUERY_NUM}-results.csv")
 
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
@@ -134,7 +136,7 @@ def write_etl_result(df, filetype="parquet", output_directory="./"):
 
         df.to_csv(output_path, header=True, index=False)
     else:
-        output_path = f"{output_directory}q{QUERY_NUM}-results.parquet"
+        output_path = os.path.join(output_directory,f"q{QUERY_NUM}-results.parquet")
         if os.path.exists(output_path):
             if os.path.isdir(output_path):
                 ## to remove existing  directory
@@ -148,7 +150,7 @@ def write_etl_result(df, filetype="parquet", output_directory="./"):
 
         else:
             df.to_parquet(
-                f"{output_directory}q{QUERY_NUM}-results.parquet", index=False
+                os.path.join(output_directory,f"q{QUERY_NUM}-results.parquet"), index=False
             )
 
 
@@ -178,7 +180,7 @@ def write_supervised_learning_result(result_dict, output_directory, filetype="cs
         prec = result_dict["prec"]
         cmat = result_dict["cmat"]
 
-        with open(f"{output_directory}q{QUERY_NUM}-metrics-results.txt", "w") as out:
+        with open(os.path.join(output_directory,f"q{QUERY_NUM}-metrics-results.txt"), "w") as out:
             out.write("Precision: %s\n" % prec)
             out.write("Accuracy: %s\n" % acc)
             out.write(
@@ -188,11 +190,11 @@ def write_supervised_learning_result(result_dict, output_directory, filetype="cs
 
         if filetype == "csv":
             df.to_csv(
-                f"{output_directory}q{QUERY_NUM}-results.csv", header=False, index=None
+                os.path.join(output_directory,f"q{QUERY_NUM}-results.csv"), header=False, index=None
             )
         else:
             df.to_parquet(
-                f"{output_directory}q{QUERY_NUM}-results.parquet", write_index=False
+                os.path.join(output_directory,f"q{QUERY_NUM}-results.parquet"), write_index=False
             )
 
 
@@ -205,7 +207,7 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
     QUERY_NUM = get_query_number()
     clustering_info_name = f"{QUERY_NUM}-results-cluster-info.txt"
 
-    with open(f"{output_directory}q{clustering_info_name}", "w") as fh:
+    with open(os.path.join(output_directory,clustering_info_name), "w") as fh:
         fh.write("Clusters:\n\n")
         fh.write(f"Number of Clusters: {result_dict.get('nclusters')}\n")
         fh.write(f"WSSSE: {result_dict.get('wssse')}\n")
@@ -221,11 +223,11 @@ def write_clustering_result(result_dict, output_directory="./", filetype="csv"):
     if filetype == "csv":
         clustering_result_name = f"q{QUERY_NUM}-results.csv"
         data.to_csv(
-            f"{output_directory}{clustering_result_name}", index=False, header=None
+            os.path.join(output_directory,clustering_result_name), index=False, header=None
         )
     else:
         clustering_result_name = f"q{QUERY_NUM}-results.parquet"
-        data.to_parquet(f"{output_directory}{clustering_result_name}", index=False)
+        data.to_parquet(os.path.join(output_directory,clustering_result_name), index=False)
 
     return 0
 
@@ -277,7 +279,7 @@ def run_dask_cudf_query(config, client, query_func, write_func=write_result):
             query_func,
             dask_profile=config.get("dask_profile"),
             client=client,
-            config=config,
+            config=config
         )
 
         benchmark(
@@ -346,50 +348,14 @@ def run_bsql_query(
     # google sheet benchmarking automation
     push_payload_to_googlesheet(config)
 
-
-def add_empty_config(args):
-    keys = [
-        "get_read_time",
-        "split_row_groups",
-        "dask_profile",
-        "verify_results",
-    ]
-
-    for key in keys:
-        if key not in args:
-            args[key] = None
-
-    if "file_format" not in args:
-        args["file_format"] = "parquet"
-
-    if "output_filetype" not in args:
-        args["output_filetype"] = "parquet"
-
-    return args
-
-
 def tpcxbb_argparser():
-    args = get_tpcxbb_argparser_commandline_args()
-    with open(args["config_file"]) as fp:
-        args = yaml.safe_load(fp.read())
-    args = add_empty_config(args)
-
-    return args
+    return get_tpcxbb_argparser_commandline_args()
 
 
 def get_tpcxbb_argparser_commandline_args():
-    parser = argparse.ArgumentParser(description="Run TPCx-BB query")
-    print("Using default arguments")
-    parser.add_argument(
-        "--config_file",
-        default="benchmark_runner/benchmark_config.yaml",
-        type=str,
-        help="Location of benchmark configuration yaml file",
-    )
+    parser = get_config().build_argparser( description="Run TPCx-BB query")
 
-    args = parser.parse_args()
-    args = vars(args)
-    return args
+    return get_config(vars(parser.parse_args()))
 
 
 def get_scale_factor(data_dir):
@@ -408,7 +374,12 @@ def get_query_number():
         ...
     """
     QUERY_NUM = os.getcwd().split("/")[-1].strip("q")
-    return QUERY_NUM
+    if re.match('\d+', QUERY_NUM):
+        return QUERY_NUM
+    for mg in filter( bool, map( lambda s: re.search('tpcx_bb_query_(\d+)',s), sys.argv )):
+        if re.match('\d+', mg.group(1)):
+           return mg.group(1)
+    return os.getenv( 'TPCXBB_QUERY_NUM')
 
 
 #################################
@@ -455,6 +426,7 @@ def calculate_label_overlap_percent(spark_labels, rapids_labels):
     rapids_labels.columns = ["cid", "label"]
 
     # assert that we clustered the same IDs
+    rapids_labels = rapids_labels.reset_index(drop=True)
     assert spark_labels.cid.equals(rapids_labels.cid)
 
     rapids_counts_normalized = rapids_labels.label.value_counts(
@@ -622,7 +594,8 @@ def verify_results(verify_dir):
     # Setup validation data
     if QUERY_NUM in SUPERVISED_LEARNING_QUERIES:
         verify_fname = os.path.join(
-            verify_dir, f"q{QUERY_NUM}-results/q{QUERY_NUM}-metrics-results.txt"
+            verify_dir, os.path.join(f"q{QUERY_NUM}-results",
+                                     f"q{QUERY_NUM}-metrics-results.txt")
         )
         result_fname = f"q{QUERY_NUM}-metrics-results.txt"
 
@@ -667,7 +640,8 @@ def verify_results(verify_dir):
         print("Clustering Query")
         try:
             cluster_info_validation_path = os.path.join(
-                verify_dir, f"q{QUERY_NUM}-results/clustering-results.txt"
+                verify_dir, os.pathh.join(f"q{QUERY_NUM}-results",
+                                          "clustering-results.txt")
             )
             cluster_info_rapids_path = f"q{QUERY_NUM}-results-cluster-info.txt"
 

@@ -1,0 +1,136 @@
+[
+  {
+    "name": "cluster_host",
+    "default": "localhost",
+    "type": "str",
+    "help": "Hostname to use for the cluster scheduler. If you are trying to spin up a fresh SSHCluster, please ignore this and use --hosts instead."
+  },
+  {
+    "name": "cluster_mode",
+    "default": "TCP",
+    "type": "str",
+    "help": "transport used by dask_cudf. Should be coordinated with interface. Options: IB, TCP, NVLINK"
+  },
+  {
+    "name": "cluster_port",
+    "default": 8786,
+    "type": "int",
+    "help": "Which port to use for the cluster scheduler. If you are trying to spin up a fresh SSHCluster, please ignore this and use --hosts instead."
+  },
+  {
+    "name": "cluster_type",
+    "default": "local",
+    "type": "str",
+    "help": "The type of cluster to spin up (local CUDACluster or an SSH CUDACluster). You do not need to specify the cluster_type when attaching to an already running cluster."
+  },
+  {
+    "name": "data_dir",
+    "default": "/datasets/tpcx-bb/sf1/parquet_1gb/",
+    "type": "str",
+    "help": "Data Dir"
+  },
+  {
+    "name": "device_memory_limit",
+    "type": "float",
+    "default": "0.9",
+    "help": "GPU memory limit is set ot a percent of available GPU memory"
+  },
+  {
+    "name": "dask_profile",
+    "type": "bool",
+    "help": "Include Dask Performance Report"
+  },
+  {
+    "name": "file_format",
+    "default": "parquet",
+    "type": "str",
+    "help": "help string"
+  },
+  {
+    "name": "get_read_time",
+    "default": "True",
+    "type": "bool",
+    "help": "whether or not to track read time"
+  },
+  {
+    "name": "interface",
+    "default":"eth0",
+    "type": "str",
+    "help": "network interface used by dask_cu*"
+  },
+  {
+    "name": "logdir",
+    "default": "./",
+    "type": "str",
+    "help": "directory to create log files`"
+  },
+  {
+    "name": "n_workers",
+    "default": 1,
+    "type": "int",
+    "help": "Number of worker processes to start with each call to daskcluster start_workers"
+  },
+  {
+    "name": "output_dir",
+    "default": "./",
+    "type": "str",
+    "help": "Query Output Directry. Defaults to the directory of the query script."
+  },
+  {
+    "name": "output_filetype",
+    "default": "parquet",
+    "type": "str",
+    "help": "help string"
+  },
+  {
+    "name": "repartition_small_table",
+    "default": "True",
+    "type": "str",
+    "help": "help string"
+  },
+  {
+    "name": "scheduler-file",
+    "type": "str",
+    "default": "sched.json",
+    "help": "File to write connection information."
+  },
+  {
+    "name": "sheet",
+    "default": "TPCx-BB",
+    "type": "str",
+    "help": "help string"
+  },
+  {
+    "name": "split_row_groups",
+    "type": "bool",
+    "help": "not really sure"
+  },
+  {
+    "name": "tab",
+    "default": "SF1000 Benchmarking Matrix",
+    "type": "str",
+    "help": "help string"
+  },
+  {
+    "name": "timeout",
+    "type": "int",
+    "default": "300",
+    "help": "max duration for each query"
+  },
+  {
+    "name": "verify_dir",
+    "default": "",
+    "type": "str",
+    "help": "help string"
+  },
+  {
+    "name": "verify_results",
+    "type": "bool",
+    "help": "help string"
+  },
+  {
+    "name": "with_blazing",
+    "type": "bool",
+    "help": "If True cluster and runners setup with suppoort for BSQL"
+  }
+]

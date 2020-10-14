@@ -11,10 +11,11 @@ def get_qnum_from_filename(name):
     m = re.search("[0-9]{2}", name).group()
     return m
 
+base_path = os.path.split(os.path.abspath(__file__))[0]
 
 dask_qnums = [str(i).zfill(2) for i in range(1, 31)]
 # Not all queries are implemented with BSQL
-bsql_query_files = sorted(glob.glob("./queries/q*/t*_sql.py"))
+bsql_query_files = sorted(glob.glob(os.path.join( base_path, "queries/q*/t*_sql.py")))
 bsql_qnums = [get_qnum_from_filename(x.split("/")[-1]) for x in bsql_query_files]
 
 def load_query(qnum, fn):
@@ -24,7 +25,7 @@ def load_query(qnum, fn):
     loader.exec_module(mod)
     return mod.main
 
-if __name__ == "__main__":
+def main():
     from xbb_tools.cluster_startup import attach_to_cluster, import_query_libs
     from xbb_tools.utils import run_query, tpcxbb_argparser
 
@@ -41,13 +42,11 @@ if __name__ == "__main__":
 
     
     config = tpcxbb_argparser()
-    include_blazing = config.get("benchmark_runner_include_bsql")
+    include_blazing = config.get("with_blazing")
     client, bc = attach_to_cluster(config, create_blazing_context=include_blazing)
 
     # Preload required libraries for queries on all workers
     client.run(import_query_libs)
-
-    base_path = os.getcwd()
 
     # Run Pure Dask Queries
     if len(dask_qnums) > 0:
@@ -93,3 +92,6 @@ if __name__ == "__main__":
                 client.run_on_scheduler(gc.collect)
                 gc.collect()
                 time.sleep(3)
+
+if __name__ == "__main__":
+    main()
